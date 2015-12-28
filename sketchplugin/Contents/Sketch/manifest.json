@@ -1,0 +1,23 @@
+{
+  "author" : "Thierry Charbonne",
+  "commands" : [
+    {
+      "script" : "script.cocoascript",
+      "handler" : "onRun",
+      "shortcut" : "",
+      "name" : "Proof Copy",
+      "identifier" : "proofcopy"
+    },
+  ],
+  "menu": {
+    "isRoot": true,
+    "items": [
+      "proofcopy",
+    ],
+  },
+  "identifier" : "com.autreplanete.sketch.proofcopy",
+  "version" : "1.0.1",
+  "description" : "Sketch Plugin to get text for proof copy or translate.",
+  "authorEmail" : "thierry.charbonnel@autreplanete.com",
+  "name" : "Proof Copy !"
+}

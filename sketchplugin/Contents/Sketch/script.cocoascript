@@ -1,0 +1,134 @@
+var pluginName = 'Proof Copy';
+
+var onRun = function(context) {
+  // Context is a dictionary containing a reference to the document, 
+  // the current selection, the plugin, curren URL and more.
+  
+  // Include additionl frameworks.
+  //framework('WebKit');
+  //framework('AppKit');
+  
+  var doc = context.document;           // the current document (MSDocument)
+  var plugin = context.plugin;          // the plugin (MSPluginBundle)
+  var page = doc.currentPage();         // the current page (MSPage)
+  
+  // The current command (MSPluginCommand)
+  var command = context.command;
+  
+  var textLayers = getTextLayers(page, command);
+  var html = renderHtml(textLayers, command); 
+  var result = createPluginPanel(doc, html);
+  
+  if (result.responseCode == 1001) {
+    return;
+  }
+  
+  //log(result);
+  var xmlDoc = NSXMLDocument.alloc().initWithXMLString_options_error(result.data, NSXMLDocumentTidyHTML, null);
+  var textItems = [];
+  
+  var dict = NSMutableDictionary.dictionary();
+  var aNode = xmlDoc.rootElement();
+  var child = aNode.children();
+  
+  while (aNode = aNode.nextNode()) {
+    if (aNode.kind() == NSXMLElementKind && aNode.name() == "p") {
+      var item = {};
+      item.string = aNode.stringValue();
+      item.uuid = aNode.attributeForName('data-uuid').stringValue();
+      item.name = aNode.attributeForName('data-name').stringValue();
+      textItems[item.uuid] = item;
+    }
+  }  
+  updateDocument(textLayers, textItems, command);
+  
+};
+
+var updateDocument = function(layers, items, command){
+  for (var i = 0; i < layers.length; i++) {
+    var layer = layers[i];
+    var uuid = [command valueForKey:"apUUID" onLayer:layer];
+    layer.setStringValue(items[uuid].string.trim());
+    layer.adjustFrameToFit();
+  }
+};
+
+var renderHtml = function(layers, command) {
+  var html = '';
+  for (var i = 0; i < layers.length; i++) {
+    var layer = layers[i];
+    var uuid = [command valueForKey:"apUUID" onLayer:layer];
+    html += '<p data-uuid="' + uuid + '" data-name="' + layer.name() + '">' + layer.stringValue() + '</p>\n\n';
+  }
+  return html;
+};
+
+var getTextLayers = function(page, command) {
+  var layers = [page children];
+  var textLayers = []; 
+  for (var i = 0; i < layers.count(); i++) {
+      var layer = [layers objectAtIndex:i];
+      if (layer.class() === MSTextLayer) {
+        [command setValue:uuid() forKey:"apUUID" onLayer:layer];
+        textLayers.push(layer);
+      }
+  }
+  return textLayers;
+};
+
+var uuid = function(){
+  var d = new Date().getTime();
+  var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = (d + Math.random() * 16) % 16 | 0;
+      var v = c == 'x' ? r : (r&0x3 | 0x8);
+      return v.toString(16);
+  });
+  return uuid;
+};
+
+function alert(msg, title) {
+    title = title || pluginName;
+    var app = [NSApplication sharedApplication];
+    [app displayDialog:msg withTitle:title];
+}
+
+function copyStringToClipboard(string) {
+    var clipboard = NSPasteboard.generalPasteboard();
+    clipboard.declareTypes_owner([NSPasteboardTypeString], null);
+    clipboard.setString_forType(string , NSPasteboardTypeString);
+    alert('Text has been copied to your clipboard, paste it in your favorite editor.', null);
+    return true;
+}
+
+function createPluginPanel(doc, html){
+  var clipboard = NSPasteboard.generalPasteboard();
+  clipboard.declareTypes_owner([NSPasteboardTypeString], null);
+  clipboard.setString_forType(html , NSPasteboardTypeString);
+  
+  var rect = NSMakeRect(0,0,678,400);
+
+  var accessoryView = NSView.alloc().initWithFrame(NSMakeRect(0,20,678,400));  
+  var scrollView = NSScrollView.alloc().initWithFrame(rect);
+  scrollView.setHasVerticalScroller(true);
+  var htmlTextView = NSTextView.alloc().initWithFrame(rect);
+  
+  htmlTextView.setString(html);
+  htmlTextView.setEditable(true);
+  htmlTextView.setSelectable(true);  
+  scrollView.setDocumentView(htmlTextView);    
+  accessoryView.addSubview(scrollView);
+  
+  var alert = NSAlert.alloc().init();
+  alert.setMessageText(pluginName);
+  alert.informativeText = 'Text has been copied to your clipboard, paste it in your favorite editor.\n Paste the edited html text below and press OK button to apply your corrections.';
+  
+  alert.addButtonWithTitle('Ok');
+  alert.addButtonWithTitle('Cancel');
+  alert.setAccessoryView(accessoryView);
+  var responseCode = alert.runModal();
+  
+  return {
+    responseCode: responseCode,
+    data: htmlTextView.string()
+  };
+}
