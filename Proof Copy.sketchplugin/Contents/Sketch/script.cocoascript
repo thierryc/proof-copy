@@ -18,7 +18,7 @@ I18N["fr"] = {
 };
  
 function _(str){
-    return (I18N[lang] && I18N[lang][str])? I18N[lang][str]: str;
+  return (I18N[lang] && I18N[lang][str])? I18N[lang][str]: str;
 }
 
 var com = com || {};
@@ -28,8 +28,8 @@ var onRun = function(context) {
   // the current selection, the plugin, curren URL and more.
   
   // Include additionl frameworks.
-  //framework('WebKit');
-  //framework('AppKit');
+  // framework('WebKit');
+  // framework('AppKit');
   
   var doc = context.document;           // the current document (MSDocument)
   var plugin = context.plugin;          // the plugin (MSPluginBundle)
@@ -40,12 +40,22 @@ var onRun = function(context) {
   
   var textLayers = getTextLayers(page, command);
   var html = renderHtml(textLayers, command);   
+  
+  /*
+  var antidoteTask = [[NSTask alloc] init];
+  var osascript = "osascript -e 'tell app \"Antidote 9\" to activate'";
+
+  [antidoteTask setLaunchPath:"/bin/bash"];
+  [antidoteTask setArguments:["-c", osascript]];
+  [antidoteTask launch];
+  [antidoteTask waitUntilExit];
+  */
+  
   var result = createPluginPanel(doc, html);
   
   if (result.responseCode == 1001) {
     return;
   }
-  
   
   if (result.data && result.data.length() > 0) {
   
@@ -67,13 +77,10 @@ var onRun = function(context) {
       }
     }  
     updateDocument(textLayers, textItems, command);
-  
     [doc showMessage:@"⭕️ Poof Copy Update Complete…"];
-  
   } else {
     [doc showMessage:@"⭕️ Poof Copy Nothing to Update…"];
   }
-  
 };
 
 var updateDocument = function(layers, items, command){
@@ -91,7 +98,7 @@ var renderHtml = function(layers, command) {
     // todo exclude locked layers
     var layer = layers[i];
     var uuid = [command valueForKey:"apUUID" onLayer:layer];
-    html += '<p data-uuid="' + uuid + '" data-name="' + layer.name() + '">' + layer.stringValue() + '</p>\n\n';
+    html += '<p data-uuid="' + uuid + '" data-name="' + layer.name() + '">' + layer.stringValue() + '</p>\n';
   }
   return html;
 };
@@ -133,12 +140,11 @@ function copyStringToClipboard(string) {
     return true;
 }
 
-
 function bundlePath(){		
 		var path = coscript.env().scriptURL.path();
 		var pathNS = NSString.alloc().initWithString(path + "");
 		
-		while(pathNS.lastPathComponent().pathExtension() != "sketchplugin"){
+		while (pathNS.lastPathComponent().pathExtension() != "sketchplugin") {
 			pathNS = pathNS.stringByDeletingLastPathComponent();
 		}
 		return pathNS + "";
