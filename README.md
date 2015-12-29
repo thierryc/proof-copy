@@ -15,3 +15,8 @@ To get your path open terminal and enter this command:
 > pwd 
 ```
 
+## Shameless Promo
+
+Usefull tool.
+
+[OpenInTerminal](https://itunes.apple.com/us/app/openinterminal/id452968973?mt=12)
