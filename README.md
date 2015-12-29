@@ -10,7 +10,8 @@ On your finder, use the Go menu, Go to Folder and enter: ```~/Library/Applicatio
 ## Dev
 Before using gulp task, you need to edit the PluginsPath var.
 
-To get your path oepn terminal and enter this command:
+To get your path open terminal and enter this command:
+
 ```shell
 > cd ~/Library/Application\ Support/com.bohemiancoding.sketch3/Plugins
 > pwd 

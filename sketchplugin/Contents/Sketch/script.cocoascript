@@ -1,5 +1,28 @@
 var pluginName = 'Proof Copy';
 
+var I18N = {};
+var lang = NSUserDefaults.standardUserDefaults().objectForKey("AppleLanguages").objectAtIndex(0);
+
+I18N["zh-Hans"] = {
+    "You need an artboard."                             : "请在画板中使用该功能.",
+    "Get properties"                                    : "获取属性",
+    "OK"                                                : "确定",
+    "Cancel"                                            : "取消"
+};
+
+I18N["fr"] = {
+    "You need an artboard."                             : "Un tableau (artboard) est requis",
+    "Get properties"                                    : "Afficher les propriétés",
+    "OK"                                                : "Valider",
+    "Cancel"                                            : "Annuler"
+};
+ 
+function _(str){
+    return (I18N[lang] && I18N[lang][str])? I18N[lang][str]: str;
+}
+
+var com = com || {};
+
 var onRun = function(context) {
   // Context is a dictionary containing a reference to the document, 
   // the current selection, the plugin, curren URL and more.
@@ -16,31 +39,40 @@ var onRun = function(context) {
   var command = context.command;
   
   var textLayers = getTextLayers(page, command);
-  var html = renderHtml(textLayers, command); 
+  var html = renderHtml(textLayers, command);   
   var result = createPluginPanel(doc, html);
   
   if (result.responseCode == 1001) {
     return;
   }
   
-  //log(result);
-  var xmlDoc = NSXMLDocument.alloc().initWithXMLString_options_error(result.data, NSXMLDocumentTidyHTML, null);
-  var textItems = [];
   
-  var dict = NSMutableDictionary.dictionary();
-  var aNode = xmlDoc.rootElement();
-  var child = aNode.children();
+  if (result.data && result.data.length() > 0) {
   
-  while (aNode = aNode.nextNode()) {
-    if (aNode.kind() == NSXMLElementKind && aNode.name() == "p") {
-      var item = {};
-      item.string = aNode.stringValue();
-      item.uuid = aNode.attributeForName('data-uuid').stringValue();
-      item.name = aNode.attributeForName('data-name').stringValue();
-      textItems[item.uuid] = item;
-    }
-  }  
-  updateDocument(textLayers, textItems, command);
+    //log(result);
+    var xmlDoc = NSXMLDocument.alloc().initWithXMLString_options_error(result.data, NSXMLDocumentTidyHTML, null);
+    var textItems = [];
+  
+    var dict = NSMutableDictionary.dictionary();
+    var aNode = xmlDoc.rootElement();
+    var child = aNode.children();
+  
+    while (aNode = aNode.nextNode()) {
+      if (aNode.kind() == NSXMLElementKind && aNode.name() == "p") {
+        var item = {};
+        item.string = aNode.stringValue();
+        item.uuid = aNode.attributeForName('data-uuid').stringValue();
+        item.name = aNode.attributeForName('data-name').stringValue();
+        textItems[item.uuid] = item;
+      }
+    }  
+    updateDocument(textLayers, textItems, command);
+  
+    [doc showMessage:@"⭕️ Poof Copy Update Complete…"];
+  
+  } else {
+    [doc showMessage:@"⭕️ Poof Copy Nothing to Update…"];
+  }
   
 };
 
@@ -56,6 +88,7 @@ var updateDocument = function(layers, items, command){
 var renderHtml = function(layers, command) {
   var html = '';
   for (var i = 0; i < layers.length; i++) {
+    // todo exclude locked layers
     var layer = layers[i];
     var uuid = [command valueForKey:"apUUID" onLayer:layer];
     html += '<p data-uuid="' + uuid + '" data-name="' + layer.name() + '">' + layer.stringValue() + '</p>\n\n';
@@ -100,6 +133,17 @@ function copyStringToClipboard(string) {
     return true;
 }
 
+
+function bundlePath(){		
+		var path = coscript.env().scriptURL.path();
+		var pathNS = NSString.alloc().initWithString(path + "");
+		
+		while(pathNS.lastPathComponent().pathExtension() != "sketchplugin"){
+			pathNS = pathNS.stringByDeletingLastPathComponent();
+		}
+		return pathNS + "";
+}
+
 function createPluginPanel(doc, html){
   var clipboard = NSPasteboard.generalPasteboard();
   clipboard.declareTypes_owner([NSPasteboardTypeString], null);
@@ -119,16 +163,26 @@ function createPluginPanel(doc, html){
   accessoryView.addSubview(scrollView);
   
   var alert = NSAlert.alloc().init();
+    
+  var icon = NSImage.alloc().initByReferencingFile(bundlePath() + '/Contents/Resources/proof-copy.icns');
+  
+  log(bundlePath() + '/Contents/Resources/proof-copy.icns');
+  
+  log(icon);
+  
+  alert.setIcon(icon);
   alert.setMessageText(pluginName);
   alert.informativeText = 'Text has been copied to your clipboard, paste it in your favorite editor.\n Paste the edited html text below and press OK button to apply your corrections.';
   
-  alert.addButtonWithTitle('Ok');
-  alert.addButtonWithTitle('Cancel');
+  alert.addButtonWithTitle(_('Ok'));
+  alert.addButtonWithTitle(_('Cancel'));
   alert.setAccessoryView(accessoryView);
+    
   var responseCode = alert.runModal();
-  
+  var string = htmlTextView.string();
+    
   return {
     responseCode: responseCode,
-    data: htmlTextView.string()
+    data: string
   };
 }
