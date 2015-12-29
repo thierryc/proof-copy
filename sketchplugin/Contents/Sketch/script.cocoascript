@@ -166,10 +166,6 @@ function createPluginPanel(doc, html){
     
   var icon = NSImage.alloc().initByReferencingFile(bundlePath() + '/Contents/Resources/proof-copy.icns');
   
-  log(bundlePath() + '/Contents/Resources/proof-copy.icns');
-  
-  log(icon);
-  
   alert.setIcon(icon);
   alert.setMessageText(pluginName);
   alert.informativeText = 'Text has been copied to your clipboard, paste it in your favorite editor.\n Paste the edited html text below and press OK button to apply your corrections.';
