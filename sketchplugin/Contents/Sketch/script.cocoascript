@@ -37,8 +37,17 @@ var onRun = function(context) {
   
   // The current command (MSPluginCommand)
   var command = context.command;
+  var selection = context.selection;
   
-  var textLayers = getTextLayers(page, command);
+   var layers;
+  
+  if (selection.count()) {
+    layers = selection;
+  } else {
+    layers = [page children];
+  }
+  
+  var textLayers = getTextLayers(layers, command);
   var html = renderHtml(textLayers, command);   
   
   /*
@@ -57,9 +66,7 @@ var onRun = function(context) {
     return;
   }
   
-  if (result.data && result.data.length() > 0) {
-  
-    //log(result);
+  if (result.data && result.data.length > 0) {
     var xmlDoc = NSXMLDocument.alloc().initWithXMLString_options_error(result.data, NSXMLDocumentTidyHTML, null);
     var textItems = [];
   
@@ -68,7 +75,7 @@ var onRun = function(context) {
     var child = aNode.children();
   
     while (aNode = aNode.nextNode()) {
-      if (aNode.kind() == NSXMLElementKind && aNode.name() == "p") {
+      if (aNode.kind() == NSXMLElementKind && aNode.name() == "div") {
         var item = {};
         item.string = aNode.stringValue();
         item.uuid = aNode.attributeForName('data-uuid').stringValue();
@@ -87,9 +94,30 @@ var updateDocument = function(layers, items, command){
   for (var i = 0; i < layers.length; i++) {
     var layer = layers[i];
     var uuid = [command valueForKey:"apUUID" onLayer:layer];
-    layer.setStringValue(items[uuid].string.trim());
+    //layer.setStringValue(items[uuid].string.trim());
+    if(layer.stringValue() == items[uuid].string.trim() || layer.stringValue() == items[uuid].string) {
+      continue;
+    }
+    // TODO add an option to force this action.
+    var layerName = layer.name();
+    var layerNameLength = layerName.count();
+    
+    if (layer.name().substring(0, layerNameLength) == layer.stringValue().substring(0, layerNameLength)) {
+      layer.setName(items[uuid].string.trim());
+    }
+    if(layer.stringValue().count() == items[uuid].string.trim().length) {
+      layer.replaceTextPreservingAttributeRanges(items[uuid].string.trim());
+    } else {
+      // TODO add warning modal
+      // log(items[uuid].string.trim());
+      layer.setStringValue(items[uuid].string.trim());
+    }
     layer.adjustFrameToFit();
   }
+};
+
+var canonicalizeNewlines = function(str) {
+  return str.replace(/(\r\n|\r|\n)/g, '\n');
 };
 
 var renderHtml = function(layers, command) {
@@ -98,13 +126,13 @@ var renderHtml = function(layers, command) {
     // todo exclude locked layers
     var layer = layers[i];
     var uuid = [command valueForKey:"apUUID" onLayer:layer];
-    html += '<p data-uuid="' + uuid + '" data-name="' + layer.name() + '">' + layer.stringValue() + '</p>\n';
+    var text = canonicalizeNewlines(layer.stringValue()).split('\n').join('<br>\n');
+    html += '<div data-uuid="' + uuid + '" data-name="' + layer.name() + '">' + text + '</div>\n\n';
   }
   return html;
 };
 
-var getTextLayers = function(page, command) {
-  var layers = [page children];
+var getTextLayers = function(layers, command) {
   var textLayers = []; 
   for (var i = 0; i < layers.count(); i++) {
       var layer = [layers objectAtIndex:i];
@@ -174,7 +202,7 @@ function createPluginPanel(doc, html){
   
   alert.setIcon(icon);
   alert.setMessageText(pluginName);
-  alert.informativeText = 'Text has been copied to your clipboard, paste it in your favorite editor.\n Paste the edited html text below and press OK button to apply your corrections.';
+  alert.informativeText = 'Text has been copied to your clipboard, paste it in your favorite editor.\nPaste the edited html text below and press OK button to apply your corrections.\nWarning: Some modification can remove inline style.';
   
   alert.addButtonWithTitle(_('Ok'));
   alert.addButtonWithTitle(_('Cancel'));

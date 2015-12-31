@@ -17,7 +17,7 @@
     ],
   },
   "identifier" : "com.autreplanete.sketch.proofcopy",
-  "version" : "1.0.3",
+  "version" : "1.0.5",
   "description" : "Sketch Plugin to get text for proof copy or translate.",
   "authorEmail" : "thierry.charbonnel@autreplanete.com",
   "name" : "Proof Copy !"
