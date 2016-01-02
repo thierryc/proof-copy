@@ -92,14 +92,13 @@ var onRun = function(context) {
 var parseDivToString = function(children){
   //var text = '';
   var xmlText = '';
-  log('tytu');
   for (var i = 0; i < children.count(); i++) {
     var child = [children objectAtIndex:i];
     if (child.kind() == NSXMLElementKind && child.name() == "p") {
       xmlText += child.XMLString();
     }
   }
-  return xmlText.replace(/(\r\n|\r|\n)/g, '').replace(/(<p>|<br>)/g, '').replace(/<\/br>/g, '\u2028').replace(/<\/p>/g, '\n');
+  return xmlText.replace(/(\r\n|\r|\n)/g, '').replace(/(<p>|<br>)/g, '').replace(/<\/br>/g, '\u2028').replace(/<\/p>/g, '\n').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 }
 
 var toType = function(obj) {
@@ -151,8 +150,9 @@ var renderHtml = function(layers, command) {
     var layer = layers[i];
     var uuid = [command valueForKey:"apUUID" onLayer:layer];
     var stringValue = layer.stringValue();
+    var stringClean = stringValue.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     //log(stringValue.replace(/\u2028/g, "<br>"));
-    var text = stringValue.replace(/\u2028/g, " <br>"); // 0x2029 paragraph; 0x2028 NSLineSeparatorCharacter
+    var text = stringClean.replace(/\u2028/g, " <br>"); // 0x2029 paragraph; 0x2028 NSLineSeparatorCharacter
     var block = paragraph(canonicalizeNewlines(text).split('\n'));
     html += '<div data-uuid="' + uuid + '" data-name="' + layer.name() + '">' + block + '</div>\n\n';
   }
