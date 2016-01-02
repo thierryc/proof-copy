@@ -66,29 +66,58 @@ var onRun = function(context) {
     return;
   }
   
-  if (result.data && result.data.length > 0) {
+  if (result.data) {
     var xmlDoc = NSXMLDocument.alloc().initWithXMLString_options_error(result.data, NSXMLDocumentTidyHTML, null);
     var textItems = [];
-  
-    var dict = NSMutableDictionary.dictionary();
+    
+    //var dict = NSMutableDictionary.dictionary();
     var aNode = xmlDoc.rootElement();
-    var child = aNode.children();
-  
     while (aNode = aNode.nextNode()) {
       if (aNode.kind() == NSXMLElementKind && aNode.name() == "div") {
         var item = {};
-        item.string = aNode.stringValue();
+        //item.string = aNode.stringValue();  
+        item.string = parseDivToString(aNode.children());
         item.uuid = aNode.attributeForName('data-uuid').stringValue();
         item.name = aNode.attributeForName('data-name').stringValue();
         textItems[item.uuid] = item;
       }
     }  
     updateDocument(textLayers, textItems, command);
-    [doc showMessage:@"⭕️ Poof Copy Update Complete…"];
+    [doc showMessage:@"⭕️ Poof Copy Update Complete… 11"];
   } else {
-    [doc showMessage:@"⭕️ Poof Copy Nothing to Update…"];
+    [doc showMessage:@"⭕️ Poof Copy Nothing to Update… 12"];
   }
 };
+
+var parseDivToString = function(children){
+  //var text = '';
+  var xmlText = '';
+  log('tytu');
+  for (var i = 0; i < children.count(); i++) {
+    var child = [children objectAtIndex:i];
+    if (child.kind() == NSXMLElementKind && child.name() == "p") {
+      //text += child.stringValue();
+      xmlText += child.XMLString();
+    }
+  }
+  
+  log( xmlText );
+  return xmlText.replace(/(\r\n|\r|\n)/g, '').replace(/(<p>|<br>)/g, '').replace(/<\/br>/g, '\u2028').replace(/<\/p>/g, '\n') );
+  
+  /*
+  log(text);
+  text = text.replace(/\n\n/g, "\u2029");
+  log(text);
+  thext = text.replace(/\n/g, "\u2028");
+  */
+  //log(text);
+  //return text;
+  //return xmlText.replace(/(\r\n|\r|\n)/g, '').replace(/(<p>|<br>)/g, '').replace(/<\/br>/g, '\u2028').replace(/<\/p>/g, '\n')
+}
+
+var toType = function(obj) {
+  return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase()
+}
 
 var updateDocument = function(layers, items, command){
   for (var i = 0; i < layers.length; i++) {
@@ -99,13 +128,13 @@ var updateDocument = function(layers, items, command){
       continue;
     }
     // TODO add an option to force this action.
-    var layerName = layer.name();
-    var layerNameLength = layerName.count();
+    var layerName = layer.name()+'';
+    var layerNameLength = layerName.length;
     
     if (layer.name().substring(0, layerNameLength) == layer.stringValue().substring(0, layerNameLength)) {
       layer.setName(items[uuid].string.trim());
     }
-    if(layer.stringValue().count() == items[uuid].string.trim().length) {
+    if((layer.stringValue()+'').length == items[uuid].string.trim().length) {
       layer.replaceTextPreservingAttributeRanges(items[uuid].string.trim());
     } else {
       // TODO add warning modal
@@ -120,14 +149,25 @@ var canonicalizeNewlines = function(str) {
   return str.replace(/(\r\n|\r|\n)/g, '\n');
 };
 
+var paragraph = function(text) {
+  var result = '';
+  for (var i = 0; i < text.length; i++) {
+    result += '<p>' + text[i] + '</p>' + "\n";
+  }
+  return result;
+}
+
 var renderHtml = function(layers, command) {
   var html = '';
   for (var i = 0; i < layers.length; i++) {
     // todo exclude locked layers
     var layer = layers[i];
     var uuid = [command valueForKey:"apUUID" onLayer:layer];
-    var text = canonicalizeNewlines(layer.stringValue()).split('\n').join('<br>\n');
-    html += '<div data-uuid="' + uuid + '" data-name="' + layer.name() + '">' + text + '</div>\n\n';
+    var stringValue = layer.stringValue();
+    //log(stringValue.replace(/\u2028/g, "<br>"));
+    var text = stringValue.replace(/\u2028/g, "<br>"); // 0x2029 paragraph; 0x2028 NSLineSeparatorCharacter
+    var block = paragraph(canonicalizeNewlines(text).split('\n'));
+    html += '<div data-uuid="' + uuid + '" data-name="' + layer.name() + '">' + block + '</div>\n\n';
   }
   return html;
 };
@@ -178,6 +218,19 @@ function bundlePath(){
 		return pathNS + "";
 }
 
+/*
+function addCheckbox(item, checked) {
+  checked = (checked == false)? NSOffState: NSOnState;
+  var checkbox = [[NSButton alloc] initWithFrame: NSMakeRect(0, 0, 300, 22)];
+  [checkbox setButtonType: NSSwitchButton]
+  [checkbox setBezelStyle: 0]
+  [checkbox setTitle: item.name]
+  [checkbox setTag: item.value]
+  [checkbox setState: checked]
+  return checkbox;
+}
+*/
+
 function createPluginPanel(doc, html){
   var clipboard = NSPasteboard.generalPasteboard();
   clipboard.declareTypes_owner([NSPasteboardTypeString], null);
@@ -186,6 +239,8 @@ function createPluginPanel(doc, html){
   var rect = NSMakeRect(0,0,678,400);
 
   var accessoryView = NSView.alloc().initWithFrame(NSMakeRect(0,20,678,400));  
+  
+  //  html view
   var scrollView = NSScrollView.alloc().initWithFrame(rect);
   scrollView.setHasVerticalScroller(true);
   var htmlTextView = NSTextView.alloc().initWithFrame(rect);
@@ -195,6 +250,8 @@ function createPluginPanel(doc, html){
   htmlTextView.setSelectable(true);  
   scrollView.setDocumentView(htmlTextView);    
   accessoryView.addSubview(scrollView);
+  
+  //  force rename checkbox 
   
   var alert = NSAlert.alloc().init();
     
