@@ -83,9 +83,9 @@ var onRun = function(context) {
       }
     }  
     updateDocument(textLayers, textItems, command);
-    [doc showMessage:@"⭕️ Poof Copy Update Complete… 11"];
+    [doc showMessage:@"⭕️ Poof Copy Update Complete…"];
   } else {
-    [doc showMessage:@"⭕️ Poof Copy Nothing to Update… 12"];
+    [doc showMessage:@"⭕️ Poof Copy Nothing to Update…"];
   }
 };
 
@@ -96,23 +96,10 @@ var parseDivToString = function(children){
   for (var i = 0; i < children.count(); i++) {
     var child = [children objectAtIndex:i];
     if (child.kind() == NSXMLElementKind && child.name() == "p") {
-      //text += child.stringValue();
       xmlText += child.XMLString();
     }
   }
-  
-  log( xmlText );
-  return xmlText.replace(/(\r\n|\r|\n)/g, '').replace(/(<p>|<br>)/g, '').replace(/<\/br>/g, '\u2028').replace(/<\/p>/g, '\n') );
-  
-  /*
-  log(text);
-  text = text.replace(/\n\n/g, "\u2029");
-  log(text);
-  thext = text.replace(/\n/g, "\u2028");
-  */
-  //log(text);
-  //return text;
-  //return xmlText.replace(/(\r\n|\r|\n)/g, '').replace(/(<p>|<br>)/g, '').replace(/<\/br>/g, '\u2028').replace(/<\/p>/g, '\n')
+  return xmlText.replace(/(\r\n|\r|\n)/g, '').replace(/(<p>|<br>)/g, '').replace(/<\/br>/g, '\u2028').replace(/<\/p>/g, '\n');
 }
 
 var toType = function(obj) {
@@ -165,7 +152,7 @@ var renderHtml = function(layers, command) {
     var uuid = [command valueForKey:"apUUID" onLayer:layer];
     var stringValue = layer.stringValue();
     //log(stringValue.replace(/\u2028/g, "<br>"));
-    var text = stringValue.replace(/\u2028/g, "<br>"); // 0x2029 paragraph; 0x2028 NSLineSeparatorCharacter
+    var text = stringValue.replace(/\u2028/g, " <br>"); // 0x2029 paragraph; 0x2028 NSLineSeparatorCharacter
     var block = paragraph(canonicalizeNewlines(text).split('\n'));
     html += '<div data-uuid="' + uuid + '" data-name="' + layer.name() + '">' + block + '</div>\n\n';
   }
