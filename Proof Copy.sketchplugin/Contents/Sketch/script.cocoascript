@@ -16,7 +16,7 @@ I18N["fr"] = {
     "OK"                                                : "Valider",
     "Cancel"                                            : "Annuler"
 };
- 
+
 function _(str){
   return (I18N[lang] && I18N[lang][str])? I18N[lang][str]: str;
 }
@@ -24,32 +24,32 @@ function _(str){
 var com = com || {};
 
 var onRun = function(context) {
-  // Context is a dictionary containing a reference to the document, 
+  // Context is a dictionary containing a reference to the document,
   // the current selection, the plugin, curren URL and more.
-  
+
   // Include additionl frameworks.
   // framework('WebKit');
   // framework('AppKit');
-  
+
   var doc = context.document;           // the current document (MSDocument)
   var plugin = context.plugin;          // the plugin (MSPluginBundle)
   var page = doc.currentPage();         // the current page (MSPage)
-  
+
   // The current command (MSPluginCommand)
   var command = context.command;
   var selection = context.selection;
-  
+
    var layers;
-  
+
   if (selection.count()) {
     layers = selection;
   } else {
     layers = [page children];
   }
-  
+
   var textLayers = getTextLayers(layers, command);
-  var html = renderHtml(textLayers, command);   
-  
+  var html = renderHtml(textLayers, command);
+
   /*
   var antidoteTask = [[NSTask alloc] init];
   var osascript = "osascript -e 'tell app \"Antidote 9\" to activate'";
@@ -59,29 +59,30 @@ var onRun = function(context) {
   [antidoteTask launch];
   [antidoteTask waitUntilExit];
   */
-  
+
   var result = createPluginPanel(doc, html);
-  
+
   if (result.responseCode == 1001) {
     return;
   }
-  
+
   if (result.data) {
     var xmlDoc = NSXMLDocument.alloc().initWithXMLString_options_error(result.data, NSXMLDocumentTidyHTML, null);
     var textItems = [];
-    
+
     //var dict = NSMutableDictionary.dictionary();
     var aNode = xmlDoc.rootElement();
     while (aNode = aNode.nextNode()) {
       if (aNode.kind() == NSXMLElementKind && aNode.name() == "div") {
         var item = {};
-        //item.string = aNode.stringValue();  
+        //item.string = aNode.stringValue();
         item.string = parseDivToString(aNode.children());
         item.uuid = aNode.attributeForName('data-uuid').stringValue();
         item.name = aNode.attributeForName('data-name').stringValue();
         textItems[item.uuid] = item;
       }
-    }  
+    }
+
     updateDocument(textLayers, textItems, command);
     [doc showMessage:@"⭕️ Poof Copy Update Complete…"];
   } else {
@@ -98,7 +99,13 @@ var parseDivToString = function(children){
       xmlText += child.XMLString();
     }
   }
-  return xmlText.replace(/(\r\n|\r|\n)/g, '').replace(/(<p>|<br>)/g, '').replace(/<\/br>/g, '\u2028').replace(/<\/p>/g, '\n').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  return xmlText.replace(/(\r\n|\r|\n)/g, '')
+    .replace(/(<p>|<br>)/g, '')
+    .replace(/<\/br>/g, '\u2028')
+    .replace(/<\/p>/g, '\n')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
 }
 
 var toType = function(obj) {
@@ -116,7 +123,7 @@ var updateDocument = function(layers, items, command){
     // TODO add an option to force this action.
     var layerName = layer.name()+'';
     var layerNameLength = layerName.length;
-    
+
     if (layer.name().substring(0, layerNameLength) == layer.stringValue().substring(0, layerNameLength)) {
       layer.setName(items[uuid].string.trim());
     }
@@ -150,7 +157,7 @@ var renderHtml = function(layers, command) {
     var layer = layers[i];
     var uuid = [command valueForKey:"apUUID" onLayer:layer];
     var stringValue = layer.stringValue();
-    var stringClean = stringValue.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    var stringClean = stringValue.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;';
     //log(stringValue.replace(/\u2028/g, "<br>"));
     var text = stringClean.replace(/\u2028/g, " <br>"); // 0x2029 paragraph; 0x2028 NSLineSeparatorCharacter
     var block = paragraph(canonicalizeNewlines(text).split('\n'));
@@ -160,7 +167,7 @@ var renderHtml = function(layers, command) {
 };
 
 var getTextLayers = function(layers, command) {
-  var textLayers = []; 
+  var textLayers = [];
   for (var i = 0; i < layers.count(); i++) {
       var layer = [layers objectAtIndex:i];
       if (layer.class() === MSTextLayer) {
@@ -195,10 +202,10 @@ function copyStringToClipboard(string) {
     return true;
 }
 
-function bundlePath(){		
+function bundlePath(){
 		var path = coscript.env().scriptURL.path();
 		var pathNS = NSString.alloc().initWithString(path + "");
-		
+
 		while (pathNS.lastPathComponent().pathExtension() != "sketchplugin") {
 			pathNS = pathNS.stringByDeletingLastPathComponent();
 		}
@@ -222,39 +229,39 @@ function createPluginPanel(doc, html){
   var clipboard = NSPasteboard.generalPasteboard();
   clipboard.declareTypes_owner([NSPasteboardTypeString], null);
   clipboard.setString_forType(html , NSPasteboardTypeString);
-  
+
   var rect = NSMakeRect(0,0,678,400);
 
-  var accessoryView = NSView.alloc().initWithFrame(NSMakeRect(0,20,678,400));  
-  
+  var accessoryView = NSView.alloc().initWithFrame(NSMakeRect(0,20,678,400));
+
   //  html view
   var scrollView = NSScrollView.alloc().initWithFrame(rect);
   scrollView.setHasVerticalScroller(true);
   var htmlTextView = NSTextView.alloc().initWithFrame(rect);
-  
+
   htmlTextView.setString(html);
   htmlTextView.setEditable(true);
-  htmlTextView.setSelectable(true);  
-  scrollView.setDocumentView(htmlTextView);    
+  htmlTextView.setSelectable(true);
+  scrollView.setDocumentView(htmlTextView);
   accessoryView.addSubview(scrollView);
-  
-  //  force rename checkbox 
-  
+
+  //  force rename checkbox
+
   var alert = NSAlert.alloc().init();
-    
+
   var icon = NSImage.alloc().initByReferencingFile(bundlePath() + '/Contents/Resources/proof-copy.icns');
-  
+
   alert.setIcon(icon);
   alert.setMessageText(pluginName);
   alert.informativeText = 'Text has been copied to your clipboard, paste it in your favorite editor.\nPaste the edited html text below and press OK button to apply your corrections.\nWarning: Some modification can remove inline style.';
-  
+
   alert.addButtonWithTitle(_('Ok'));
   alert.addButtonWithTitle(_('Cancel'));
   alert.setAccessoryView(accessoryView);
-    
+
   var responseCode = alert.runModal();
   var string = htmlTextView.string();
-    
+
   return {
     responseCode: responseCode,
     data: string
